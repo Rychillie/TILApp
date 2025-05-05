@@ -36,8 +36,7 @@ final class AcronymTests: XCTestCase {
     }
     
     func testAcronymCanBeSavedWithAPI() async throws {
-        let user = try await User.create(on: app.db)
-        let createAcronymData = CreateAcronymData(short: acronymShort, long: acronymLong, userID: user.id!)
+        let createAcronymData = CreateAcronymData(short: acronymShort, long: acronymLong)
         
         try await app.test(.POST, acronymsURI, beforeRequest: { request in
             try await request.content.encode(createAcronymData)
@@ -72,7 +71,7 @@ final class AcronymTests: XCTestCase {
         let acronym = try await Acronym.create(short: acronymShort, long: acronymLong, on: app.db)
         let newUser = try await User.create(on: app.db)
         let newLong = "Oh My Gosh"
-        let updatedAcronymData = CreateAcronymData(short: acronymShort, long: newLong, userID: newUser.id!)
+        let updatedAcronymData = CreateAcronymData(short: acronymShort, long: newLong)
         
         try await app.test(.PUT, "\(acronymsURI)\(acronym.id!)", beforeRequest: { request in
             try await request.content.encode(updatedAcronymData)
