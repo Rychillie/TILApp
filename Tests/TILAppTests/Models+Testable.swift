@@ -7,15 +7,29 @@
 
 @testable import TILApp
 import Fluent
+import Vapor
 
 extension User {
     static func create(
-        name: String = "Luke",
-        username: String = "lukes",
+        name: String = "Rychillie",
+        username: String? = nil,
         on database: Database
-    ) async throws -> User {
-        let user = User(name: name, username: username, password: "password")
-        try await user.create(on: database)
+    ) throws -> User {
+        let createUsername: String
+        
+        if let suppliedUsername = username {
+            createUsername = suppliedUsername
+        } else {
+            createUsername = UUID().uuidString
+        }
+        
+        let password = try Bcrypt.hash("password")
+        let user = User(
+            name: name,
+            username: createUsername,
+            password: password
+        )
+        try user.save(on: database).wait()
         return user
     }
 }
