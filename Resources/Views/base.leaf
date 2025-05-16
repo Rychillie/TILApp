@@ -52,6 +52,11 @@
                         Acronym</a>
                     </li>
                 </ul>
+                #if(userLoggedIn):
+                    <form class="form-inline" action="/logout" method="POST">
+                        <input class="nav-link btn btn-secondary mr-sm-2" type="submit" value="Log out" />
+                    </form>
+                #endif
             </div>
         </div>
     </nav>
@@ -59,6 +64,18 @@
     <div class="container mt-3">
         #import("content")
     </div>
+    
+    #if(showCookieMessage):
+        <footer id="cookie-footer">
+            <div id="cookieMessage" class="container">
+                <span class="muted">
+                    This site uses cookies! To accept, click
+                    <a href="#" onclick="cookiesConfirmed()">OK</a>.
+                </span>
+            </div>
+        </footer>
+        <script src="/scripts/cookies.js"></script>
+    #endif
 
     <script>
         function updateTheme() {

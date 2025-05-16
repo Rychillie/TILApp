@@ -1,17 +1,13 @@
 import NIOSSL
 import Fluent
 import FluentPostgresDriver
-import FluentSQLiteDriver
-import FluentMySQLDriver
-import FluentMongoDriver
 import Vapor
 import Leaf
 
 // configures your application
 public func configure(_ app: Application) async throws {
-    app.middleware.use(
-        FileMiddleware(publicDirectory: app.directory.publicDirectory)
-    )
+    app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
+    app.middleware.use(app.sessions.middleware)
     
     let databaseName: String
     let databasePort: Int

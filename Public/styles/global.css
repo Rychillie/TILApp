@@ -35,3 +35,13 @@
     background-color: var(--bs-secondary-bg-subtle);
     border: var(--bs-border-width) solid var(--bs-border-color);
 }
+
+#cookie-footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 60px;
+    line-height: 60px;
+    background-color: var(--bs-body-bg);
+    border-top: var(--bs-border-width) solid var(--bs-border-color);
+}
