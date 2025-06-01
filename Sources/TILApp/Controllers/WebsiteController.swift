@@ -16,6 +16,8 @@ struct WebsiteController: RouteCollection {
         let credentialsAuthRoutes = authSessionsRoutes.grouped(User.credentialsAuthenticator())
         credentialsAuthRoutes.post("login", use: loginPostHandler)
         authSessionsRoutes.post("logout", use: logoutHandler)
+        authSessionsRoutes.get("register", use: registerHandler)
+        authSessionsRoutes.post("register", use: registerPostHandler)
         authSessionsRoutes.get(use: indexHandler)
         authSessionsRoutes.get("acronym", ":acronymID", use: acronymHandler)
         authSessionsRoutes.get("user", ":userID", use: userHandler)
@@ -268,6 +270,37 @@ struct WebsiteController: RouteCollection {
         req.auth.logout(User.self)
         return req.redirect(to: "/")
     }
+    
+    func registerHandler(_ req: Request) -> EventLoopFuture<View> {
+        let context: RegisterContext
+        if let message = req.query[String.self, at: "message"] {
+            context = RegisterContext(message: message)
+        } else {
+            context = RegisterContext()
+        }
+        return req.view.render("register", context)
+    }
+    
+    func registerPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
+        do {
+            try RegisterData.validate(content: req)
+        } catch let error as ValidationsError {
+            let message = error.description.addingPercentEncoding(
+                withAllowedCharacters: .urlQueryAllowed
+            ) ?? "Unknown error"
+            let redirect = req.redirect(to: "/register?message=\(message)")
+            return req.eventLoop.future(redirect)
+        }
+        let data = try req.content.decode(RegisterData.self)
+        let password = try Bcrypt.hash(data.password)
+        
+        let user = User(name: data.name, username: data.username, password: password)
+        
+        return user.save(on: req.db).map {
+            req.auth.login(user)
+            return req.redirect(to: "/")
+        }
+    }
 }
 
 struct IndexContext: Encodable {
@@ -331,5 +364,68 @@ struct LoginContext: Encodable {
     
     init(loginError: Bool = false) {
         self.loginError = loginError
+    }
+}
+
+struct RegisterContext: Encodable {
+    let title = "Register"
+    let message: String?
+    
+    init(message: String? = nil) {
+        self.message = message
+    }
+}
+
+struct RegisterData: Content {
+    let name: String
+    let username: String
+    let password: String
+    let confirmPassword: String
+}
+
+extension RegisterData: Validatable {
+    public static func validations(_ validations: inout Validations) {
+        validations.add("name", as: String.self, is: .ascii)
+        validations.add("username", as: String.self, is: .alphanumeric && .count(3...))
+        validations.add("password", as: String.self, is: .count(8...))
+        validations.add("zipCode", as: String.self, is: .zipCode, required: false)
+    }
+}
+
+extension ValidatorResults {
+    struct ZipCode {
+        let isValidZipCode: Bool
+    }
+}
+
+extension ValidatorResults.ZipCode: ValidatorResult {
+    var isFailure: Bool {
+        !isValidZipCode
+    }
+    
+    var successDescription: String? {
+        "is a valid zip code"
+    }
+    
+    var failureDescription: String? {
+        "is not a valid zip code"
+    }
+}
+
+extension Validator where T == String {
+    private static var zipCodeRegex: String {
+        "^\\d{5}(?:[-\\s]\\d{4})?$"
+    }
+    
+    public static var zipCode: Validator<T> {
+        Validator { input -> any ValidatorResult in
+            guard let range = input.range(
+                of: zipCodeRegex,
+                options: [.regularExpression]
+            ), range.lowerBound == input.startIndex && range.upperBound == input.endIndex else {
+                return ValidatorResults.ZipCode(isValidZipCode: false)
+            }
+            return ValidatorResults.ZipCode(isValidZipCode: true)
+        }
     }
 }
